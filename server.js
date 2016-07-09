@@ -1,10 +1,17 @@
 var http = require('http');
+var url = require('url');
 
-function start() {
+function start(route, handle) {
   function onRequest(req,res){
-    console.log('Request received.');
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.write('Hello World');
+    var pathname = url.parse(req.url).pathname;
+    if (pathname !== '/favicon.ico') {
+      console.log('Request for ' + pathname + ' received.');
+
+      route(handle, pathname);
+
+      res.writeHead(200, {'Content-Type': 'text/plain'});
+      res.write('Hello World');
+    }
     res.end();
   }
 
