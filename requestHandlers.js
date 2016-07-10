@@ -1,4 +1,6 @@
-var querystring = require('querystring');
+var querystring = require('querystring'),
+  fs = require('fs'),
+  formidable = require('formidable');
 
 function start(res, postData) {
   console.log('Request handler \'start\' was called.');
@@ -9,9 +11,9 @@ function start(res, postData) {
     'charset="UTF-8" />' +
     '</head>' +
     '<body>' +
-    '<form action="/upload" method="post">' +
-    '<textarea name="text" rows="20" cols="60"></textarea>' +
-    '<input type="submit" value="Submit text" />' +
+    '<form action="/upload" enctype="multipart/form-data" method="post">' +
+    '<input type="file" name="upload">' +
+    '<input type="submit" value="Upload File" />' +
     '</form>' +
     '</body>' +
     '</html>';
@@ -21,12 +23,35 @@ function start(res, postData) {
   res.end();
 }
 
-function upload(res, postData) {
+function upload(res, req) {
   console.log('Request handler \'upload\' was called.');
-  res.writeHead(200, {'Content-Type': 'text/plain'});
-  res.write('You\'ve sent: ' + querystring.parse(postData).text);
-  res.end();
+
+  var form = new formidable.IncomingForm();
+  console.log('About to parse.');
+  form.parse(req,function(error,fields,files) {
+    console.log('Parsing done!');
+
+    /* Rename function with Windows fs fix */
+    fs.rename(files.upload.path, '/tmp/test.png', function(error){
+      if (error) {
+        fs.unlink('/tmp/test.png'); // unlink is delete file
+        fs.rename(files.upload.path, '/tmp/test.png');
+      }
+    });
+    res.writeHead(200, {'Content-Type': 'text/html'});
+    res.write('Received image:<br/>');
+    res.write('<img src="/show" />');
+    res.end();
+  });
+
+}
+
+function show(res) {
+  console.log('Request handler \'show\' was called.');
+  res.writeHead(200, {'Content-Type': 'image/png'});
+  fs.createReadStream('/tmp/test.png').pipe(res);
 }
 
 exports.start = start;
 exports.upload = upload;
+exports.show = show;
